@@ -29,9 +29,9 @@
 
 Например:
 
-\```python
+```python
 server = photoAlbumServer(inputPathToPhotoBase='./photoBase')
-\```
+```
 
 По умолчанию используется путь `./photoBase`
 ### Поддерживаемые файлы ###
@@ -40,9 +40,9 @@ server = photoAlbumServer(inputPathToPhotoBase='./photoBase')
 
 Например:
 
-\```python
+```python
 server = photoAlbumServer(fileExtensions=['JPEG', 'gif', 'png'])
-\```
+```
 
 По умолчанию поддерживаются типы `jpeg, jpg, gif, png`
 ### COM-порт ###
@@ -52,9 +52,9 @@ server = photoAlbumServer(fileExtensions=['JPEG', 'gif', 'png'])
 
 Например:
 
-\```python
+```python
 server.start(portName='COM1', baudrate=9600)
-\```
+```
 
 ## Запросы для сервера ###
 
@@ -95,9 +95,9 @@ server.start(portName='COM1', baudrate=9600)
  
  Например:
  
-\```python
+```python
 server = photoAlbumServer(checkSum=myChechSum)
-\```
+```
 
 
 ## Ответы от сервера ##
