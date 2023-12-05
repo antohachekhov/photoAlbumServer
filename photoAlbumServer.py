@@ -3,10 +3,10 @@ import base64
 from typing import Tuple, Union, Any
 from session import Session
 import serial
+import time
 import serial.tools.list_ports
 from serial import PARITY_ODD
 import CheckSum
-import sys
 
 
 class photoAlbumServer:
@@ -39,8 +39,20 @@ class photoAlbumServer:
                 raise ValueError(f"{extension} is not support")
         return True
 
+    @staticmethod
+    def _checkDirectory(path: str) -> bool:
+        """
+        Проверка существования каталога по заданному пути
+        :param path: путь к каталогу в файловой системе
+        :return: True, если каталог существует, иначе - исключение ValueError
+        """
+        if os.path.exists(path) and os.path.isdir(path):
+            return True
+        else:
+            raise ValueError(f'Directory "{path}" is not exist')
+
     def __init__(self,
-                 inputPathToPhotoBase: str = './photoBase',
+                 inputPathToPhotoBase: str = 'photoBase',
                  checkSum=CheckSum.simple_checksum,
                  fileExtensions: list = None):
         """
@@ -64,7 +76,9 @@ class photoAlbumServer:
             fileExtensions = photoAlbumServer.supportedFileExtensions
         self.fileExtensions = fileExtensions
 
-        Session.directoryStart = inputPathToPhotoBase
+        if photoAlbumServer._checkDirectory(inputPathToPhotoBase):
+            splittenPath = inputPathToPhotoBase.split('\\')
+            Session.directoryStart = splittenPath[-1]
 
         # Словарь поддерживаемых команд сервера
         self.commands = {
@@ -117,6 +131,7 @@ class photoAlbumServer:
         while self.waitingFlag:
             # Прослушка порта
             request = self.port.read(size=1024).decode()
+            print(f'Server > Get "{request}"')
             # Обработка запроса от клиента
             response = self.sessionCommand(request)
             # Отправка ответа на запрос
@@ -138,6 +153,8 @@ class photoAlbumServer:
             package += f'{message}. '
             package = package.encode()
             self.port.write(package + self.checkSum(package).to_bytes(4, byteorder='little'))
+            print(f'Server > Send "{package.decode() + self.checkSum(package).to_bytes(4, byteorder="little").decode()}"')
+            time.sleep(1)
 
     def _checkSession(self):
         """
@@ -243,22 +260,26 @@ class photoAlbumServer:
         if len(args) == 1:
             path += fr'\{args[0]}'
 
-        # Просмотр содержимого каталога
-        listContentDir = []
-        for item in os.listdir(path):
-            fullPathToItem = os.path.join(path, item)
-            if os.path.isdir(fullPathToItem):
-                # Если элемент каталога - каталог, добавляется пометка 'd-'
-                listContentDir.append(f'd-{item}')
-            else:
-                if any(map(item.lower().endswith, self.fileExtensions)):
-                    # Если элемент каталога - поддерживаемый файл, добавляется пометка 'f-'
-                    listContentDir.append(f'f-{item}')
-        # Формирование строки со списком каталога
-        listOfDir = ' '.join(listContentDir)
-        # Возвращаются два ответа: 1 - успешность выполнения, размер списка каталога,
-        # 2 - команда 0, строка со списком каталога
-        return (200, f'{len(listOfDir)} bytes'), (0, listOfDir)
+        # Проверка существования каталога
+        if os.path.exists(path) and os.path.isdir(path):
+            # Просмотр содержимого каталога
+            listContentDir = []
+            for item in os.listdir(path):
+                fullPathToItem = os.path.join(path, item)
+                if os.path.isdir(fullPathToItem):
+                    # Если элемент каталога - каталог, добавляется пометка 'd-'
+                    listContentDir.append(f'd-{item}')
+                else:
+                    if any(map(item.lower().endswith, self.fileExtensions)):
+                        # Если элемент каталога - поддерживаемый файл, добавляется пометка 'f-'
+                        listContentDir.append(f'f-{item}')
+            # Формирование строки со списком каталога
+            listOfDir = ' '.join(listContentDir)
+            # Возвращаются два ответа: 1 - успешность выполнения, размер списка каталога,
+            # 2 - команда 0, строка со списком каталога
+            return (200, f'{len(listOfDir)} bytes'), (0, listOfDir)
+        else:
+            return (149, ''),
 
     def _cd(self, args):
         """
@@ -336,46 +357,3 @@ class photoAlbumServer:
             return 102, ''
         self.currentSession = None
         return (200, 'Goodbye!'),
-
-    """
-    def _sendAlbum(self, path: str):
-        ""
-        Отправка альбома с сервера
-        :param path: строка - путь к альбому
-        ""
-        try:
-            pathsOfPhotos = self._findPhoto(path)
-        except ValueError:
-            self._send(149)
-        else:
-            countPhotosInAlbum = len(pathsOfPhotos)
-            countPhotosToSend = 0
-            albumBytes = list()
-            if countPhotosInAlbum > 0:
-                for pathPhoto in pathsOfPhotos:
-                    flag, photoBytes = self._encodePhoto(pathPhoto)
-                    if flag:
-                        countPhotosToSend += 1
-                        albumBytes.append(photoBytes)
-            else:
-                self._send(149)
-            self._send(200,
-                       f'Album follow ({countPhotosToSend} photos, {countPhotosInAlbum - countPhotosToSend} missed)')
-            for photoBytes in albumBytes:
-                self._send(0, photoBytes.decode())
-                
-    def _findPhoto(self, path: str) -> list:
-        ""
-        Поиск альбома в базе по заданному пути
-        :param path: строка - путь
-        :return: список, в котором элементы - пути к найденным файлам
-        ""
-        if not os.path.exists(path):
-            raise ValueError(f"No such album {path}")
-        foundFiles = list()
-        for root, dirs, files in os.walk(self.pathToPhotoBase + '/' + path):
-            for file in files:
-                if any(map(file.lower().endswith, self.fileExtensions)):
-                    foundFiles.append(root + '/' + str(file))
-        return foundFiles
-    """
