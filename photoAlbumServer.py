@@ -353,7 +353,7 @@ class photoAlbumServer:
         :param args: пустой список
         :return: кортеж из пар: код ответа, сообщение
         """
-        if len(args):
-            return 102, ''
+        #if len(args):
+        #    return 102, ''
         self.currentSession = None
         return (200, 'Goodbye!'),
