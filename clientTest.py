@@ -25,16 +25,16 @@ def client():
             checkSum = CheckSum.simple_checksum(command.encode())
             request = command + checkSum.to_bytes(4, byteorder="little").decode()
             print(f'Клиент > Отправляем {request}')
-            port.write(request.encode())
+            port.write(request.encode() + '\n'.encode())
             if command[:-2].split(' ')[0] in ['get', 'ls']:
-                answer = port.read(size=1024).decode()
+                answer = port.readline().decode().rstrip('\n')
                 if answer.split()[0] == '200':
                     print(f'Клиент > Получено: {answer}')
                     print(f'Проверка контрольный суммы: {answer[-4:].encode() == CheckSum.simple_checksum(answer[:-4].encode()).to_bytes(4, byteorder="little")}')
                     size = int(answer.split(' ')[indexOfBytesInAnswer[command[:-2].split()[0]]])
-                    answer = port.read(size=size + 6).decode()
+                    answer = port.readline().decode().rstrip('\n')
             else:
-                answer = port.read(size=1024).decode()
+                answer = port.readline().decode().rstrip('\n')
             print(
                 f'Проверка контрольный суммы: {answer[-4:].encode() == CheckSum.simple_checksum(answer[:-4].encode()).to_bytes(4, byteorder="little")}')
             print(f'Клиент > Получено: {answer}')
