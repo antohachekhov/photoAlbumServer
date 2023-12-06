@@ -127,10 +127,10 @@ class photoAlbumServer:
         """
         Обработка приходящих сообщений
         """
-        print('Server is ready to listen')
+        print('Server > I`m ready to listen')
         while self.waitingFlag:
             # Прослушка порта
-            request = self.port.read(size=1024).decode()
+            request = self.port.readline().decode().rstrip('\n')
             print(f'Server > Get "{request}"')
             # Обработка запроса от клиента
             response = self.sessionCommand(request)
@@ -152,9 +152,9 @@ class photoAlbumServer:
                 package = '000 '
             package += f'{message}. '
             package = package.encode()
-            self.port.write(package + self.checkSum(package).to_bytes(4, byteorder='little'))
+            self.port.writelines([package + self.checkSum(package).to_bytes(4, byteorder='little') + '\n'.encode()])
             print(f'Server > Send "{package.decode() + self.checkSum(package).to_bytes(4, byteorder="little").decode()}"')
-            time.sleep(1)
+            # time.sleep(1)
 
     def _checkSession(self):
         """
